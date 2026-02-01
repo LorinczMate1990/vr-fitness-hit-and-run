@@ -1,6 +1,8 @@
-import { Canvas } from "@react-three/fiber";
+import { useRef } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { XR, createXRStore, XROrigin } from "@react-three/xr";
 import { OrbitControls } from "@react-three/drei";
+import type { Mesh } from "three";
 
 const xrStore = createXRStore({
   handTracking: true,
@@ -20,13 +22,28 @@ function hasWebGL(): boolean {
   }
 }
 
+function MovingBox() {
+  const ref = useRef<Mesh>(null);
+
+  useFrame(({ clock }) => {
+    if (ref.current) {
+      const t = clock.getElapsedTime();
+      ref.current.position.z = -3 + Math.sin(t) * 2;
+    }
+  });
+
+  return (
+    <mesh ref={ref} position={[-1.2, 1, -3]}>
+      <boxGeometry args={[0.6, 0.6, 0.6]} />
+      <meshStandardMaterial color="#4361ee" />
+    </mesh>
+  );
+}
+
 function TestObjects() {
   return (
     <group>
-      <mesh position={[-1.2, 1, -3]}>
-        <boxGeometry args={[0.6, 0.6, 0.6]} />
-        <meshStandardMaterial color="#4361ee" />
-      </mesh>
+      <MovingBox />
 
       <mesh position={[1.2, 1, -3]}>
         <sphereGeometry args={[0.4, 32, 32]} />
