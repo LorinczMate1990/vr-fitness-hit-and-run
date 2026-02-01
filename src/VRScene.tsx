@@ -15,7 +15,7 @@ const xrStore = createXRStore({
   bounded: true,
   foveation: 1,
   frameRate: "high",
-  controller: { model: false },
+  controller: { model: false, rayPointer: false },
 });
 
 function hasWebGL(): boolean {
