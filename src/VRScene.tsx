@@ -1,6 +1,12 @@
 import { useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { XR, createXRStore, XROrigin } from "@react-three/xr";
+import {
+  XR,
+  createXRStore,
+  XROrigin,
+  XRSpace,
+  useXRInputSourceState,
+} from "@react-three/xr";
 import { OrbitControls } from "@react-three/drei";
 import type { Mesh } from "three";
 
@@ -9,6 +15,7 @@ const xrStore = createXRStore({
   bounded: true,
   foveation: 1,
   frameRate: "high",
+  controller: { model: false },
 });
 
 function hasWebGL(): boolean {
@@ -37,6 +44,32 @@ function MovingBox() {
       <boxGeometry args={[0.6, 0.6, 0.6]} />
       <meshStandardMaterial color="#4361ee" />
     </mesh>
+  );
+}
+
+function LeftControllerObject() {
+  const controller = useXRInputSourceState("controller", "left");
+  if (!controller) return null;
+  return (
+    <XRSpace space={controller.inputSource.gripSpace!}>
+      <mesh>
+        <boxGeometry args={[0.1, 0.1, 0.15]} />
+        <meshStandardMaterial color="#2ecc71" />
+      </mesh>
+    </XRSpace>
+  );
+}
+
+function RightControllerObject() {
+  const controller = useXRInputSourceState("controller", "right");
+  if (!controller) return null;
+  return (
+    <XRSpace space={controller.inputSource.gripSpace!}>
+      <mesh>
+        <sphereGeometry args={[0.08, 32, 32]} />
+        <meshStandardMaterial color="#2ecc71" />
+      </mesh>
+    </XRSpace>
   );
 }
 
@@ -114,6 +147,9 @@ export default function VRScene() {
       <Canvas>
         <XR store={xrStore}>
           <XROrigin />
+
+          <LeftControllerObject />
+          <RightControllerObject />
 
           <ambientLight intensity={0.5} />
           <directionalLight position={[5, 5, 5]} intensity={1} />
