@@ -70,10 +70,10 @@ export default function VRScene() {
           Menu
         </button>
         <button
-          onClick={() => xrStore.enterVR()}
+          onClick={() => xrStore.enterAR()}
           style={{ ...btnStyle, background: "#4361ee" }}
         >
-          Enter VR
+          Enter AR
         </button>
       </div>
 

@@ -6,4 +6,8 @@ export const xrStore = createXRStore({
   foveation: 1,
   frameRate: "high",
   controller: { model: false, rayPointer: false },
+  sessionInit: {
+    requiredFeatures: ["local-floor"],
+    optionalFeatures: ["camera-access"],
+  },
 });
