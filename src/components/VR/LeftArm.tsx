@@ -3,12 +3,12 @@ import { XRSpace, useXRInputSourceState } from "@react-three/xr";
 import type { Mesh } from "three";
 import { useControllerCollision } from "../../hooks/VR/useControllerCollision";
 
-interface LeftControllerObjectProps {
+interface LeftArmProps {
   deltaT: number;
   targetRef: React.RefObject<Mesh | null>;
 }
 
-export default function LeftControllerObject({ deltaT, targetRef }: LeftControllerObjectProps) {
+export default function LeftArm({ deltaT, targetRef }: LeftArmProps) {
   const controller = useXRInputSourceState("controller", "left");
   const meshRef = useRef<Mesh>(null);
   useControllerCollision(meshRef, targetRef, controller?.inputSource, deltaT);

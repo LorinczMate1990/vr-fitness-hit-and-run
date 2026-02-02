@@ -3,8 +3,8 @@ import { useFrame } from "@react-three/fiber";
 import { XROrigin } from "@react-three/xr";
 import { OrbitControls } from "@react-three/drei";
 import type { Mesh } from "three";
-import LeftControllerObject from "./LeftControllerObject";
-import RightControllerObject from "./RightControllerObject";
+import LeftArm from "./LeftArm";
+import RightArm from "./RightArm";
 import MovingBox from "./MovingBox";
 
 export default function SceneContent() {
@@ -19,8 +19,8 @@ export default function SceneContent() {
     <>
       <XROrigin />
 
-      <LeftControllerObject deltaT={deltaT} targetRef={movingBoxRef} />
-      <RightControllerObject deltaT={deltaT} targetRef={movingBoxRef} />
+      <LeftArm deltaT={deltaT} targetRef={movingBoxRef} />
+      <RightArm deltaT={deltaT} targetRef={movingBoxRef} />
 
       <ambientLight intensity={0.5} />
       <directionalLight position={[5, 5, 5]} intensity={1} />
