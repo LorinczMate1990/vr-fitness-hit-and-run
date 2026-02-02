@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Menu from "./Menu";
-import VRScene from "./VRScene";
+import Menu from "./views/Menu";
+import VRScene from "./views/VRScene";
 
 export default function App() {
   return (
