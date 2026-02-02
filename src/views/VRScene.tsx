@@ -1,5 +1,6 @@
 import { Canvas } from "@react-three/fiber";
 import { XR } from "@react-three/xr";
+import { useNavigate } from "react-router-dom";
 import { xrStore } from "../components/VR/xrStore";
 import SceneContent from "../components/VR/SceneContent";
 
@@ -14,7 +15,18 @@ function hasWebGL(): boolean {
   }
 }
 
+const btnStyle: React.CSSProperties = {
+  padding: "0.75rem 1.5rem",
+  fontSize: "1rem",
+  borderRadius: "8px",
+  border: "none",
+  color: "#fff",
+  cursor: "pointer",
+};
+
 export default function VRScene() {
+  const navigate = useNavigate();
+
   if (!hasWebGL()) {
     return (
       <div
@@ -52,16 +64,14 @@ export default function VRScene() {
         }}
       >
         <button
+          onClick={() => navigate("/")}
+          style={{ ...btnStyle, background: "#555" }}
+        >
+          Menu
+        </button>
+        <button
           onClick={() => xrStore.enterVR()}
-          style={{
-            padding: "0.75rem 1.5rem",
-            fontSize: "1rem",
-            borderRadius: "8px",
-            border: "none",
-            background: "#4361ee",
-            color: "#fff",
-            cursor: "pointer",
-          }}
+          style={{ ...btnStyle, background: "#4361ee" }}
         >
           Enter VR
         </button>
