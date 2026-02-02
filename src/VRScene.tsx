@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { createRef, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import {
   XR,
@@ -8,7 +8,7 @@ import {
   useXRInputSourceState,
 } from "@react-three/xr";
 import { OrbitControls } from "@react-three/drei";
-import type { Mesh } from "three";
+import { Box3, type Mesh } from "three";
 
 const xrStore = createXRStore({
   handTracking: true,
@@ -29,30 +29,60 @@ function hasWebGL(): boolean {
   }
 }
 
-function MovingBox() {
-  const ref = useRef<Mesh>(null);
+const movingBoxRef = createRef<Mesh>();
 
+function MovingBox() {
   useFrame(({ clock }) => {
-    if (ref.current) {
+    if (movingBoxRef.current) {
       const t = clock.getElapsedTime();
-      ref.current.position.z = -3 + Math.sin(t) * 2;
+      movingBoxRef.current.position.z = -3 + Math.sin(t) * 2;
     }
   });
 
   return (
-    <mesh ref={ref} position={[-1.2, 1, -3]}>
+    <mesh ref={movingBoxRef} position={[-1.2, 1, -3]}>
       <boxGeometry args={[0.6, 0.6, 0.6]} />
       <meshStandardMaterial color="#4361ee" />
     </mesh>
   );
 }
 
+function useControllerCollision(
+  controllerMeshRef: React.RefObject<Mesh | null>,
+  inputSource: XRInputSource | undefined
+) {
+  const lastPulse = useRef(0);
+  const boxA = useRef(new Box3());
+  const boxB = useRef(new Box3());
+
+  useFrame(() => {
+    if (!controllerMeshRef.current || !movingBoxRef.current || !inputSource)
+      return;
+
+    boxA.current.setFromObject(controllerMeshRef.current);
+    boxB.current.setFromObject(movingBoxRef.current);
+
+    if (boxA.current.intersectsBox(boxB.current)) {
+      const now = performance.now();
+      if (now - lastPulse.current > 200) {
+        lastPulse.current = now;
+        const gamepad = inputSource.gamepad;
+        if (gamepad?.hapticActuators?.[0]) {
+          (gamepad.hapticActuators[0] as any).pulse(0.8, 100);
+        }
+      }
+    }
+  });
+}
+
 function LeftControllerObject() {
   const controller = useXRInputSourceState("controller", "left");
+  const meshRef = useRef<Mesh>(null);
+  useControllerCollision(meshRef, controller?.inputSource);
   if (!controller) return null;
   return (
     <XRSpace space={controller.inputSource.gripSpace!}>
-      <mesh>
+      <mesh ref={meshRef}>
         <boxGeometry args={[0.1, 0.1, 0.15]} />
         <meshStandardMaterial color="#2ecc71" />
       </mesh>
@@ -62,10 +92,12 @@ function LeftControllerObject() {
 
 function RightControllerObject() {
   const controller = useXRInputSourceState("controller", "right");
+  const meshRef = useRef<Mesh>(null);
+  useControllerCollision(meshRef, controller?.inputSource);
   if (!controller) return null;
   return (
     <XRSpace space={controller.inputSource.gripSpace!}>
-      <mesh>
+      <mesh ref={meshRef}>
         <sphereGeometry args={[0.08, 32, 32]} />
         <meshStandardMaterial color="#2ecc71" />
       </mesh>
