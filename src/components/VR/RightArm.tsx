@@ -7,12 +7,12 @@ import MeleeWeapon from "./MeleeWeapon";
 interface RightArmProps {
   deltaT: number;
   targetRef: React.RefObject<Mesh | null>;
+  collisionMeshRef: React.RefObject<Mesh | null>;
 }
 
-export default function RightArm({ deltaT, targetRef }: RightArmProps) {
+export default function RightArm({ deltaT, targetRef, collisionMeshRef }: RightArmProps) {
   const controller = useXRInputSourceState("controller", "right");
   const trackerRef = useRef<Group>(null);
-  const collisionMeshRef = useRef<Mesh>(null);
 
   useControllerCollision(
     collisionMeshRef,
