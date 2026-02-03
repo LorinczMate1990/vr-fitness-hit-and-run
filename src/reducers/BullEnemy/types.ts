@@ -3,14 +3,14 @@ import type { Vector3 } from "three";
 export interface BullEnemyState {
   health: number;
   mode: "attack" | "flee";
-  fleeDuration: number;
+  stateDuration: number;
   position: Vector3;
   speed: Vector3;
   // Configuration values stored in state for reducer access
   maxSpeed: number;
   acceleration: number;
   hitSpeedThreshold: number;
-  fleeDurationStartValue: number;
+  stateDurationStartValue: number;
 }
 
 export type BullEnemyAction =
@@ -23,5 +23,5 @@ export interface BullEnemyConfig {
   maxSpeed: number;
   acceleration: number;
   hitSpeedThreshold: number;
-  fleeDurationStartValue: number;
+  stateDurationStartValue: number;
 }

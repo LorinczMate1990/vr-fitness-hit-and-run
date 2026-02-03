@@ -15,7 +15,7 @@ const bullEnemyConfig: BullEnemyConfig = {
   maxSpeed: 8,
   acceleration: 4.5,
   hitSpeedThreshold: 3,
-  fleeDurationStartValue: 0.5,
+  stateDurationStartValue: 0.5,
 };
 
 export default function SceneContent() {

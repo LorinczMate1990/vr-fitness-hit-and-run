@@ -7,9 +7,29 @@ export function bullEnemyReducer(
   switch (action.type) {
     case "TICK": {
       const { deltaT, playerPosition } = action;
+      const newStateDuration = state.stateDuration - deltaT;
 
       if (state.mode === "attack") {
-        // Accelerate towards player
+        // Check if course correction is needed
+        if (newStateDuration <= 0) {
+          // Preserve speed magnitude, redirect towards player
+          const currentSpeedMagnitude = state.speed.length();
+          const direction = playerPosition.clone().sub(state.position).normalize();
+          const newSpeed = direction.multiplyScalar(currentSpeedMagnitude);
+
+          const newPosition = state.position
+            .clone()
+            .add(newSpeed.clone().multiplyScalar(deltaT));
+
+          return {
+            ...state,
+            speed: newSpeed,
+            position: newPosition,
+            stateDuration: state.stateDurationStartValue,
+          };
+        }
+
+        // Normal acceleration towards player
         const direction = playerPosition.clone().sub(state.position).normalize();
         const newSpeed = state.speed
           .clone()
@@ -28,16 +48,26 @@ export function bullEnemyReducer(
           ...state,
           speed: newSpeed,
           position: newPosition,
+          stateDuration: newStateDuration,
         };
       } else {
         // Flee mode
-        const newFleeDuration = state.fleeDuration - deltaT;
+        if (newStateDuration <= 0) {
+          // Switch back to attack mode, redirect towards player
+          const currentSpeedMagnitude = state.speed.length();
+          const direction = playerPosition.clone().sub(state.position).normalize();
+          const newSpeed = direction.multiplyScalar(currentSpeedMagnitude);
 
-        if (newFleeDuration <= 0) {
+          const newPosition = state.position
+            .clone()
+            .add(newSpeed.clone().multiplyScalar(deltaT));
+
           return {
             ...state,
             mode: "attack",
-            fleeDuration: 0,
+            speed: newSpeed,
+            position: newPosition,
+            stateDuration: state.stateDurationStartValue,
           };
         }
 
@@ -60,7 +90,7 @@ export function bullEnemyReducer(
           ...state,
           speed: newSpeed,
           position: newPosition,
-          fleeDuration: newFleeDuration,
+          stateDuration: newStateDuration,
         };
       }
     }
@@ -87,7 +117,7 @@ export function bullEnemyReducer(
           speed: punchSpeed.clone(),
           health: state.health - damage,
           mode: "flee",
-          fleeDuration: state.fleeDurationStartValue,
+          stateDuration: state.stateDurationStartValue,
         };
       } else {
         // Weak hit: just transfer momentum, no damage
