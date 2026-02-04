@@ -10,12 +10,20 @@ export function bullEnemyReducer(
       const newStateDuration = state.stateDuration - deltaT;
 
       if (state.mode === "attack") {
+        const Y_PLANE_THRESHOLD = 0.3; // 30cm tolerance
+
         // Check if course correction is needed
         if (newStateDuration <= 0) {
           // Preserve speed magnitude, redirect towards player
           const currentSpeedMagnitude = state.speed.length();
           const direction = playerPosition.clone().sub(state.position).normalize();
           const newSpeed = direction.multiplyScalar(currentSpeedMagnitude);
+
+          // Y-plane correction
+          const yDiff = playerPosition.y - state.position.y;
+          if (Math.abs(yDiff) <= Y_PLANE_THRESHOLD) {
+            newSpeed.y = 0;
+          }
 
           const newPosition = state.position
             .clone()
@@ -29,11 +37,25 @@ export function bullEnemyReducer(
           };
         }
 
-        // Normal acceleration towards player
-        const direction = playerPosition.clone().sub(state.position).normalize();
+        // Normal acceleration towards player (horizontal only)
+        const direction = playerPosition.clone().sub(state.position);
+        direction.y = 0; // Remove Y component for horizontal pursuit
+        direction.normalize();
+
         const newSpeed = state.speed
           .clone()
           .add(direction.multiplyScalar(state.acceleration * deltaT));
+
+        // Y-plane correction: use half acceleration to return to player's Y plane
+        const yDiff = playerPosition.y - state.position.y;
+        if (Math.abs(yDiff) > Y_PLANE_THRESHOLD) {
+          // Outside threshold: accelerate toward player's Y plane
+          const yDirection = Math.sign(yDiff);
+          newSpeed.y += yDirection * (state.acceleration * 0.5) * deltaT;
+        } else {
+          // Within threshold: zero out Y speed
+          newSpeed.y = 0;
+        }
 
         // Clamp speed to maxSpeed (only from acceleration, not from hits)
         if (newSpeed.length() > state.maxSpeed) {
