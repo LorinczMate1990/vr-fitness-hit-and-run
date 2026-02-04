@@ -198,9 +198,9 @@ export default function MeleeWeapon() {
     []
   );
 
-  // Create curved rhombus blade geometry: 2.5cm x 1.5cm base, 20cm length
+  // Create curved rhombus blade geometry: 6.25cm x 3.75cm base, 50cm length
   const bladeGeometry = useMemo(
-    () => createBladeGeometry(0.025, 0.015, 0.2, 20, 5),
+    () => createBladeGeometry(0.0625, 0.0375, 0.5, 24, 5),
     []
   );
 
