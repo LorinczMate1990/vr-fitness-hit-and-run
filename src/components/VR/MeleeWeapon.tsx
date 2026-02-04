@@ -1,4 +1,5 @@
-import { useEffect, useRef, useMemo } from "react";
+import { useRef, useMemo } from "react";
+import * as THREE from "three";
 import {
   Vector3,
   ShaderMaterial,
@@ -8,11 +9,6 @@ import {
   Float32BufferAttribute,
 } from "three";
 import { useFrame } from "@react-three/fiber";
-
-interface MeleeWeaponProps {
-  position: [number, number, number];
-  deltaT: number;
-}
 
 // Typical human punch/swing speed tops out around 10 m/s
 const MAX_SPEED = 10;
@@ -188,8 +184,9 @@ const fragmentShader = `
   }
 `;
 
-export default function MeleeWeapon({ position, deltaT }: MeleeWeaponProps) {
-  const prevPos = useRef(new Vector3(...position));
+export default function MeleeWeapon() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const prevPos = useRef(new Vector3());
   const matRef = useRef<ShaderMaterial>(null);
   const timeRef = useRef(0);
 
@@ -207,26 +204,28 @@ export default function MeleeWeapon({ position, deltaT }: MeleeWeaponProps) {
     []
   );
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (matRef.current) {
-      timeRef.current += 0.016; // Approximate frame time for smooth animation
+      timeRef.current += delta;
       matRef.current.uniforms.uTime.value = timeRef.current;
+    }
+
+    // Calculate speed from world position change
+    if (meshRef.current && matRef.current && delta > 0) {
+      const currPos = new Vector3();
+      meshRef.current.getWorldPosition(currPos);
+
+      const speed = currPos.distanceTo(prevPos.current) / delta;
+      const t = Math.min(speed / MAX_SPEED, 1);
+      matRef.current.uniforms.uSpeed.value = t;
+
+      prevPos.current.copy(currPos);
     }
   });
 
-  useEffect(() => {
-    const curr = new Vector3(...position);
-    if (deltaT > 0 && matRef.current) {
-      const speed = curr.distanceTo(prevPos.current) / deltaT;
-      const t = Math.min(speed / MAX_SPEED, 1);
-      matRef.current.uniforms.uSpeed.value = t;
-    }
-    prevPos.current.copy(curr);
-  }, [position, deltaT]);
-
   // Blade: 20cm length, curved rhombus base at controller, tip pointing down
   return (
-    <mesh position={position} geometry={bladeGeometry}>
+    <mesh ref={meshRef} geometry={bladeGeometry}>
       <shaderMaterial
         ref={matRef}
         uniforms={uniforms}
