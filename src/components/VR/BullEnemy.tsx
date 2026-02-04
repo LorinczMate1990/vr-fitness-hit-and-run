@@ -8,18 +8,23 @@ import {
 
 interface BullEnemyProps {
   config: BullEnemyConfig;
-  playerPosition: Vector3;
+  targetPosition: Vector3;
   deltaT: number;
   leftArmRef: React.RefObject<Mesh | null>;
   rightArmRef: React.RefObject<Mesh | null>;
+  onHitTarget?: () => void;
 }
+
+// Distance threshold to count as hitting the target
+const TARGET_HIT_DISTANCE = 0.5;
 
 export default function BullEnemy({
   config,
-  playerPosition,
+  targetPosition,
   deltaT,
   leftArmRef,
   rightArmRef,
+  onHitTarget,
 }: BullEnemyProps) {
   const [state, dispatch] = useReducer(
     bullEnemyReducer,
@@ -35,13 +40,29 @@ export default function BullEnemy({
   const prevLeftPos = useRef(new Vector3());
   const prevRightPos = useRef(new Vector3());
   const lastHitTime = useRef(0);
+  const lastTargetHitTime = useRef(0);
 
   // Tick the AI each frame
   useEffect(() => {
     if (deltaT > 0) {
-      dispatch({ type: "TICK", deltaT, playerPosition });
+      dispatch({ type: "TICK", deltaT, playerPosition: targetPosition });
     }
-  }, [deltaT, playerPosition]);
+  }, [deltaT, targetPosition]);
+
+  // Check collision with target (tree)
+  useEffect(() => {
+    if (state.mode !== "attack" || deltaT <= 0) return;
+
+    const now = performance.now();
+    // Debounce target hits (500ms cooldown)
+    if (now - lastTargetHitTime.current < 500) return;
+
+    const distanceToTarget = state.position.distanceTo(targetPosition);
+    if (distanceToTarget < TARGET_HIT_DISTANCE) {
+      lastTargetHitTime.current = now;
+      onHitTarget?.();
+    }
+  }, [state.position, state.mode, targetPosition, deltaT, onHitTarget]);
 
   // Check collisions with arms and dispatch HIT events
   useEffect(() => {
