@@ -65,12 +65,12 @@ export default function SceneContent() {
 
       // Only move if there's input and tree is above minimum scale
       if ((adjustedX !== 0 || adjustedY !== 0) && treeRef.current.getScale() > MIN_SCALE) {
-        // Calculate movement on XY plane
+        // Calculate movement on XZ plane
         const moveX = adjustedX * TREE_MOVE_SPEED * delta;
-        const moveY = -adjustedY * TREE_MOVE_SPEED * delta; // Invert Y for intuitive control
+        const moveZ = adjustedY * TREE_MOVE_SPEED * delta; // Thumbstick Y controls Z axis
 
         // Calculate distance moved
-        const distanceMoved = Math.sqrt(moveX * moveX + moveY * moveY);
+        const distanceMoved = Math.sqrt(moveX * moveX + moveZ * moveZ);
 
         // Calculate scale cost for this movement
         const scaleCost = distanceMoved * MOVEMENT_COST_PER_UNIT;
@@ -83,8 +83,8 @@ export default function SceneContent() {
           // Apply the movement
           setTreePosition((prev) => [
             prev[0] + moveX,
-            prev[1] + moveY,
-            prev[2], // Z stays constant
+            prev[1], // Y stays constant
+            prev[2] + moveZ,
           ]);
 
           // Reduce scale based on distance moved
