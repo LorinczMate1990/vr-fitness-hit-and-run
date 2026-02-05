@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { XROrigin } from "@react-three/xr";
 import { OrbitControls } from "@react-three/drei";
 import { Vector3, type Mesh } from "three";
@@ -15,7 +15,7 @@ const TREE_POSITION: [number, number, number] = [0, 0, -2];
 
 const bullEnemyConfig: BullEnemyConfig = {
   health: 100,
-  position: new Vector3(0, 1.2, -5),
+  position: new Vector3(0, 1.7, -5),
   maxSpeed: 8,
   acceleration: 4.5,
   hitSpeedThreshold: 3,
@@ -29,11 +29,17 @@ export default function SceneContent() {
   const rightArmRef = useRef<Mesh>(null);
   const treeRef = useRef<FractalTreeHandle>(null);
 
-  // Tree position for the bull to chase
-  const treePosition = useRef(new Vector3(...TREE_POSITION));
+  const { camera } = useThree();
+
+  // Target position: tree's XZ but player's head Y
+  const targetPosition = useRef(new Vector3(...TREE_POSITION));
 
   useFrame((_, delta) => {
     setDeltaT(delta);
+    // Update target Y to match player's head height
+    targetPosition.current.x = TREE_POSITION[0];
+    targetPosition.current.y = camera.position.y;
+    targetPosition.current.z = TREE_POSITION[2];
   });
 
   const handleBullHitTree = () => {
@@ -56,7 +62,7 @@ export default function SceneContent() {
 
       <BullEnemy
         config={bullEnemyConfig}
-        targetPosition={treePosition.current}
+        targetPosition={targetPosition.current}
         deltaT={deltaT}
         leftArmRef={leftArmRef}
         rightArmRef={rightArmRef}
