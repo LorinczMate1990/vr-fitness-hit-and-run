@@ -13,7 +13,11 @@ import { useFrame } from "@react-three/fiber";
 export interface FractalTreeHandle {
   getPosition: () => Vector3;
   onHit: () => void;
+  getScale: () => number;
+  reduceScale: (amount: number) => void;
 }
+
+export { MIN_SCALE, GROWTH_RATE };
 
 interface FractalTreeProps {
   position: [number, number, number];
@@ -225,7 +229,6 @@ const FractalTree = forwardRef<FractalTreeHandle, FractalTreeProps>(
     const matRef = useRef<ShaderMaterial>(null);
     const timeRef = useRef(0);
     const scaleRef = useRef(1.0);
-    const positionVec = useMemo(() => new Vector3(...position), [position]);
 
     const uniforms = useMemo(
       () => ({
@@ -237,12 +240,20 @@ const FractalTree = forwardRef<FractalTreeHandle, FractalTreeProps>(
 
     const treeGeometry = useMemo(() => createFractalTreeGeometry(4, 0.15, 0.02, 0.5, 0.7, 0.65), []);
 
-    useImperativeHandle(ref, () => ({
-      getPosition: () => positionVec,
-      onHit: () => {
-        scaleRef.current = Math.max(MIN_SCALE, scaleRef.current - HIT_PENALTY);
-      },
-    }));
+    useImperativeHandle(
+      ref,
+      () => ({
+        getPosition: () => new Vector3(...position),
+        onHit: () => {
+          scaleRef.current = Math.max(MIN_SCALE, scaleRef.current - HIT_PENALTY);
+        },
+        getScale: () => scaleRef.current,
+        reduceScale: (amount: number) => {
+          scaleRef.current = Math.max(MIN_SCALE, scaleRef.current - amount);
+        },
+      }),
+      [position]
+    );
 
     useFrame((_, delta) => {
       if (matRef.current) {
