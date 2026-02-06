@@ -1,6 +1,8 @@
 import type { Vector3 } from "three";
 import type { BullEnemyState, BullEnemyAction } from "./types";
 
+const Y_PLANE_THRESHOLD = 0.3; // 30cm tolerance
+
 function tick(
   state: BullEnemyState,
   deltaT: number,
@@ -8,112 +10,111 @@ function tick(
 ): BullEnemyState {
   const newStateDuration = state.stateDuration - deltaT;
 
-  if (state.mode === "attack") {
-    const Y_PLANE_THRESHOLD = 0.3; // 30cm tolerance
-
-    // Check if course correction is needed
-    if (newStateDuration <= 0) {
-      // Preserve speed magnitude, redirect towards target
-      const currentSpeedMagnitude = state.speed.length();
-      const direction = targetPosition.clone().sub(state.position).normalize();
-      const newSpeed = direction.multiplyScalar(currentSpeedMagnitude);
-
-      // Y-plane correction
-      const yDiff = targetPosition.y - state.position.y;
-      if (Math.abs(yDiff) <= Y_PLANE_THRESHOLD) {
-        newSpeed.y = 0;
-      }
-
-      const newPosition = state.position
-        .clone()
-        .add(newSpeed.clone().multiplyScalar(deltaT));
-
-      return {
-        ...state,
-        speed: newSpeed,
-        position: newPosition,
-        stateDuration: state.stateDurationStartValue,
-      };
-    }
-
-    // Normal acceleration towards target (horizontal only)
-    const direction = targetPosition.clone().sub(state.position);
-    direction.y = 0; // Remove Y component for horizontal pursuit
-    direction.normalize();
-
-    const newSpeed = state.speed
-      .clone()
-      .add(direction.multiplyScalar(state.acceleration * deltaT));
-
-    // Y-plane correction: use half acceleration to return to target's Y plane
-    const yDiff = targetPosition.y - state.position.y;
-    if (Math.abs(yDiff) > Y_PLANE_THRESHOLD) {
-      // Outside threshold: accelerate toward target's Y plane
-      const yDirection = Math.sign(yDiff);
-      newSpeed.y += yDirection * (state.acceleration * 0.5) * deltaT;
-    } else {
-      // Within threshold: zero out Y speed
-      newSpeed.y = 0;
-    }
-
-    // Clamp speed to maxSpeed (only from acceleration, not from hits)
-    if (newSpeed.length() > state.maxSpeed) {
-      newSpeed.normalize().multiplyScalar(state.maxSpeed);
-    }
-
-    const newPosition = state.position
-      .clone()
-      .add(newSpeed.clone().multiplyScalar(deltaT));
-
-    return {
-      ...state,
-      speed: newSpeed,
-      position: newPosition,
-      stateDuration: newStateDuration,
-    };
+  if (newStateDuration <= 0) {
+    return tickRedirect(state, deltaT, targetPosition);
+  } else if (state.mode === "attack") {
+    return tickAttack(state, deltaT, targetPosition, newStateDuration);
   } else {
-    // Flee mode
-    if (newStateDuration <= 0) {
-      // Switch back to attack mode, redirect towards target
-      const currentSpeedMagnitude = state.speed.length();
-      const direction = targetPosition.clone().sub(state.position).normalize();
-      const newSpeed = direction.multiplyScalar(currentSpeedMagnitude);
-
-      const newPosition = state.position
-        .clone()
-        .add(newSpeed.clone().multiplyScalar(deltaT));
-
-      return {
-        ...state,
-        mode: "attack",
-        speed: newSpeed,
-        position: newPosition,
-        stateDuration: state.stateDurationStartValue,
-      };
-    }
-
-    // Accelerate away from target (inverse of attack)
-    const direction = state.position.clone().sub(targetPosition).normalize();
-    const newSpeed = state.speed
-      .clone()
-      .add(direction.multiplyScalar(state.acceleration * deltaT));
-
-    // Clamp speed to maxSpeed
-    if (newSpeed.length() > state.maxSpeed) {
-      newSpeed.normalize().multiplyScalar(state.maxSpeed);
-    }
-
-    const newPosition = state.position
-      .clone()
-      .add(newSpeed.clone().multiplyScalar(deltaT));
-
-    return {
-      ...state,
-      speed: newSpeed,
-      position: newPosition,
-      stateDuration: newStateDuration,
-    };
+    return tickFlee(state, deltaT, targetPosition, newStateDuration);
   }
+}
+
+function tickRedirect(
+  state: BullEnemyState,
+  deltaT: number,
+  targetPosition: Vector3
+): BullEnemyState {
+  const currentSpeedMagnitude = state.speed.length();
+  const direction = targetPosition.clone().sub(state.position).normalize();
+  const newSpeed = direction.multiplyScalar(currentSpeedMagnitude);
+
+  // Keep it near to the Y-plane
+  const yDiff = targetPosition.y - state.position.y;
+  if (Math.abs(yDiff) <= Y_PLANE_THRESHOLD) {
+    newSpeed.y = 0;
+  }
+
+  const newPosition = state.position
+    .clone()
+    .add(newSpeed.clone().multiplyScalar(deltaT));
+
+  return {
+    ...state,
+    mode: "attack",
+    speed: newSpeed,
+    position: newPosition,
+    stateDuration: state.stateDurationStartValue,
+  };
+}
+
+function tickAttack(
+  state: BullEnemyState,
+  deltaT: number,
+  targetPosition: Vector3,
+  newStateDuration: number
+): BullEnemyState {
+  // Acceleration towards target (horizontal only)
+  const direction = targetPosition.clone().sub(state.position);
+  direction.y = 0;
+  direction.normalize();
+
+  const newSpeed = state.speed
+    .clone()
+    .add(direction.multiplyScalar(state.acceleration * deltaT));
+
+  // Y-plane correction: use half acceleration to return to target's Y plane
+  const yDiff = targetPosition.y - state.position.y;
+  if (Math.abs(yDiff) > Y_PLANE_THRESHOLD) {
+    const yDirection = Math.sign(yDiff);
+    newSpeed.y += yDirection * (state.acceleration * 0.5) * deltaT;
+  } else {
+    newSpeed.y = 0;
+  }
+
+  // Clamp speed to maxSpeed
+  if (newSpeed.length() > state.maxSpeed) {
+    newSpeed.normalize().multiplyScalar(state.maxSpeed);
+  }
+
+  const newPosition = state.position
+    .clone()
+    .add(newSpeed.clone().multiplyScalar(deltaT));
+
+  return {
+    ...state,
+    speed: newSpeed,
+    position: newPosition,
+    stateDuration: newStateDuration,
+  };
+}
+
+function tickFlee(
+  state: BullEnemyState,
+  deltaT: number,
+  targetPosition: Vector3,
+  newStateDuration: number
+): BullEnemyState {
+  // Accelerate away from target
+  const direction = state.position.clone().sub(targetPosition).normalize();
+  const newSpeed = state.speed
+    .clone()
+    .add(direction.multiplyScalar(state.acceleration * deltaT));
+
+  // Clamp speed to maxSpeed
+  if (newSpeed.length() > state.maxSpeed) {
+    newSpeed.normalize().multiplyScalar(state.maxSpeed);
+  }
+
+  const newPosition = state.position
+    .clone()
+    .add(newSpeed.clone().multiplyScalar(deltaT));
+
+  return {
+    ...state,
+    speed: newSpeed,
+    position: newPosition,
+    stateDuration: newStateDuration,
+  };
 }
 
 function hit(state: BullEnemyState, punchSpeed: Vector3): BullEnemyState {
