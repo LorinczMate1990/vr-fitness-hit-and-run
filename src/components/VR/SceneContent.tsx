@@ -115,7 +115,6 @@ export default function SceneContent() {
       <BullEnemy
         config={bullEnemyConfig}
         targetPosition={targetPosition.current}
-        deltaT={deltaT}
         leftArmRef={leftArmRef}
         rightArmRef={rightArmRef}
         onHitTarget={handleBullHitTree}
