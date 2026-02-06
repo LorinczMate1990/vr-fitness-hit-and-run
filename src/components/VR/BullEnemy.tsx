@@ -1,108 +1,87 @@
-import { useReducer, useRef } from "react";
-import { Vector3, Box3, type Mesh } from "three";
+import { useReducer, useRef, forwardRef, useImperativeHandle } from "react";
+import { Vector3, type Mesh } from "three";
 import { useFrame } from "@react-three/fiber";
+import { useThree } from "@react-three/fiber";
 import {
   bullEnemyReducer,
   createInitialState,
   type BullEnemyConfig,
 } from "../../reducers/BullEnemy";
+import type { Actor } from "../../types/Actor";
+
+export interface BullEnemyHandle extends Actor {
+  getMeshRef: () => React.RefObject<Mesh | null>;
+}
 
 interface BullEnemyProps {
   config: BullEnemyConfig;
-  targetPosition: Vector3;
-  leftArmRef: React.RefObject<Mesh | null>;
-  rightArmRef: React.RefObject<Mesh | null>;
-  onHitTarget?: () => void;
+  target: Actor;
 }
 
 // Distance threshold to count as hitting the target
 const TARGET_HIT_DISTANCE = 0.5;
+// Damage dealt when bull hits tree
+const BULL_DAMAGE = 0.6;
 
-export default function BullEnemy({
-  config,
-  targetPosition,
-  leftArmRef,
-  rightArmRef,
-  onHitTarget,
-}: BullEnemyProps) {
-  const [state, dispatch] = useReducer(
-    bullEnemyReducer,
-    config,
-    createInitialState
-  );
+const BullEnemy = forwardRef<BullEnemyHandle, BullEnemyProps>(
+  ({ config, target }, ref) => {
+    const [state, dispatch] = useReducer(
+      bullEnemyReducer,
+      config,
+      createInitialState
+    );
 
-  const meshRef = useRef<Mesh>(null);
-  const enemyBox = useRef(new Box3());
-  const armBox = useRef(new Box3());
+    const meshRef = useRef<Mesh>(null);
+    const lastTargetHitTime = useRef(0);
+    const { camera } = useThree();
 
-  // Track previous arm positions to calculate punch speed
-  const prevLeftPos = useRef(new Vector3());
-  const prevRightPos = useRef(new Vector3());
-  const lastHitTime = useRef(0);
-  const lastTargetHitTime = useRef(0);
+    useImperativeHandle(
+      ref,
+      () => ({
+        getPosition: () => state.position.clone(),
+        onHit: (_attacker: Actor | null, damage: number) => {
+          // Convert damage to a punch speed vector (simplified)
+          const punchSpeed = new Vector3(0, 0, -damage);
+          dispatch({ type: "HIT", punchSpeed });
+        },
+        getMeshRef: () => meshRef,
+      }),
+      [state.position]
+    );
 
-  useFrame((_, deltaT) => {
-    // Tick the AI
-    dispatch({ type: "TICK", deltaT, targetPosition });
+    useFrame((_, deltaT) => {
+      // Target position: tree's XZ but player's head Y
+      const targetPosition = target.getPosition();
+      targetPosition.y = camera.position.y;
 
-    // Check collision with target 
-    if (state.mode === "attack") {
-      const now = performance.now();
-      if (now - lastTargetHitTime.current >= 500) {
-        const distanceToTarget = state.position.distanceTo(targetPosition);
-        if (distanceToTarget < TARGET_HIT_DISTANCE) {
-          lastTargetHitTime.current = now;
-          onHitTarget?.();
+      // Tick the AI
+      dispatch({ type: "TICK", deltaT, targetPosition });
+
+      // Check collision with target
+      if (state.mode === "attack") {
+        const now = performance.now();
+        if (now - lastTargetHitTime.current >= 500) {
+          const distanceToTarget = state.position.distanceTo(targetPosition);
+          if (distanceToTarget < TARGET_HIT_DISTANCE) {
+            lastTargetHitTime.current = now;
+            target.onHit(null, BULL_DAMAGE);
+          }
         }
       }
-    }
+    });
 
-    // Check collisions with arms
-    if (!meshRef.current) return;
+    // Color based on state: red when attacking, yellow when fleeing
+    const color = state.mode === "attack" ? "#ff0000" : "#ffcc00";
 
-    const now = performance.now();
-    if (now - lastHitTime.current < 200) return;
+    return (
+      <mesh ref={meshRef} position={state.position}>
+        <sphereGeometry args={[0.3, 32, 32]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+    );
+  }
+);
 
-    enemyBox.current.setFromObject(meshRef.current);
+BullEnemy.displayName = "BullEnemy";
 
-    // Check left arm collision
-    if (leftArmRef.current) {
-      const currentPos = new Vector3();
-      leftArmRef.current.getWorldPosition(currentPos);
-
-      armBox.current.setFromObject(leftArmRef.current);
-      if (enemyBox.current.intersectsBox(armBox.current)) {
-        const punchSpeed = currentPos.clone().sub(prevLeftPos.current).divideScalar(deltaT);
-        dispatch({ type: "HIT", punchSpeed });
-        lastHitTime.current = now;
-      }
-
-      prevLeftPos.current.copy(currentPos);
-    }
-
-    // Check right arm collision
-    if (rightArmRef.current) {
-      const currentPos = new Vector3();
-      rightArmRef.current.getWorldPosition(currentPos);
-
-      armBox.current.setFromObject(rightArmRef.current);
-      if (enemyBox.current.intersectsBox(armBox.current)) {
-        const punchSpeed = currentPos.clone().sub(prevRightPos.current).divideScalar(deltaT);
-        dispatch({ type: "HIT", punchSpeed });
-        lastHitTime.current = now;
-      }
-
-      prevRightPos.current.copy(currentPos);
-    }
-  });
-
-  // Color based on state: red when attacking, yellow when fleeing
-  const color = state.mode === "attack" ? "#ff0000" : "#ffcc00";
-
-  return (
-    <mesh ref={meshRef} position={state.position}>
-      <sphereGeometry args={[0.3, 32, 32]} />
-      <meshStandardMaterial color={color} />
-    </mesh>
-  );
-}
+export default BullEnemy;

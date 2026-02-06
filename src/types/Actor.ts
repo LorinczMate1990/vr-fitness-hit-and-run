@@ -1,0 +1,6 @@
+import type { Vector3 } from "three";
+
+export interface Actor {
+  getPosition: () => Vector3;
+  onHit: (attacker: Actor | null, damage: number) => void;
+}

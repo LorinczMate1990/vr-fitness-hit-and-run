@@ -2,6 +2,7 @@ import { useRef, useMemo } from "react";
 import * as THREE from "three";
 import {
   Vector3,
+  Box3,
   ShaderMaterial,
   DoubleSide,
   AdditiveBlending,
@@ -11,9 +12,12 @@ import {
 import { useFrame } from "@react-three/fiber";
 import vertexShader from "../../../shaders/common/vertex.glsl";
 import fragmentShader from "../../../shaders/melee-weapon/fragment.glsl";
+import type { BullEnemyHandle } from "./BullEnemy";
 
 // Typical human punch/swing speed tops out around 10 m/s
 const MAX_SPEED = 10;
+// Hit cooldown in ms
+const HIT_COOLDOWN = 200;
 
 // Create curved rhombus blade geometry
 function createBladeGeometry(
@@ -102,11 +106,18 @@ function createBladeGeometry(
   return geometry;
 }
 
-export default function MeleeWeapon() {
+interface MeleeWeaponProps {
+  targets?: React.RefObject<BullEnemyHandle | null>[];
+}
+
+export default function MeleeWeapon({ targets = [] }: MeleeWeaponProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const prevPos = useRef(new Vector3());
   const matRef = useRef<ShaderMaterial>(null);
   const timeRef = useRef(0);
+  const weaponBox = useRef(new Box3());
+  const targetBox = useRef(new Box3());
+  const lastHitTime = useRef(0);
 
   const uniforms = useMemo(
     () => ({
@@ -128,17 +139,44 @@ export default function MeleeWeapon() {
       matRef.current.uniforms.uTime.value = timeRef.current;
     }
 
+    if (!meshRef.current || delta <= 0) return;
+
     // Calculate speed from world position change
-    if (meshRef.current && matRef.current && delta > 0) {
-      const currPos = new Vector3();
-      meshRef.current.getWorldPosition(currPos);
+    const currPos = new Vector3();
+    meshRef.current.getWorldPosition(currPos);
 
-      const speed = currPos.distanceTo(prevPos.current) / delta;
-      const t = Math.min(speed / MAX_SPEED, 1);
+    const speed = currPos.distanceTo(prevPos.current) / delta;
+    const t = Math.min(speed / MAX_SPEED, 1);
+
+    if (matRef.current) {
       matRef.current.uniforms.uSpeed.value = t;
-
-      prevPos.current.copy(currPos);
     }
+
+    // Check collisions with targets
+    const now = performance.now();
+    if (now - lastHitTime.current >= HIT_COOLDOWN) {
+      weaponBox.current.setFromObject(meshRef.current);
+
+      for (const targetRef of targets) {
+        const target = targetRef.current;
+        if (!target) continue;
+
+        const targetMeshRef = target.getMeshRef();
+        if (!targetMeshRef.current) continue;
+
+        targetBox.current.setFromObject(targetMeshRef.current);
+        if (weaponBox.current.intersectsBox(targetBox.current)) {
+          // Calculate damage from weapon speed
+          const weaponSpeed = currPos.clone().sub(prevPos.current).divideScalar(delta);
+          const damage = weaponSpeed.length();
+          target.onHit(null, damage);
+          lastHitTime.current = now;
+          break; // Only hit one target per frame
+        }
+      }
+    }
+
+    prevPos.current.copy(currPos);
   });
 
   // Blade: 20cm length, curved rhombus base at controller, tip pointing down

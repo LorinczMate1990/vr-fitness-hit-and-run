@@ -11,10 +11,9 @@ import {
 import { useFrame } from "@react-three/fiber";
 import vertexShader from "../../../shaders/common/vertex.glsl";
 import fragmentShader from "../../../shaders/fractal-tree/fragment.glsl";
+import type { Actor } from "../../types/Actor";
 
-export interface FractalTreeHandle {
-  getPosition: () => Vector3;
-  onHit: () => void;
+export interface FractalTreeHandle extends Actor {
   getScale: () => number;
   reduceScale: (amount: number) => void;
 }
@@ -167,8 +166,9 @@ const FractalTree = forwardRef<FractalTreeHandle, FractalTreeProps>(
       ref,
       () => ({
         getPosition: () => new Vector3(...position),
-        onHit: () => {
-          scaleRef.current = Math.max(MIN_SCALE, scaleRef.current - HIT_PENALTY);
+        onHit: (_attacker: Actor | null, damage: number) => {
+          const penalty = damage > 0 ? damage : HIT_PENALTY;
+          scaleRef.current = Math.max(MIN_SCALE, scaleRef.current - penalty);
         },
         getScale: () => scaleRef.current,
         reduceScale: (amount: number) => {

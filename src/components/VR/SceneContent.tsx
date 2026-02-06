@@ -6,7 +6,7 @@ import { Vector3, type Mesh } from "three";
 import LeftArm from "./LeftArm";
 import RightArm from "./RightArm";
 import MovingBox from "./MovingBox";
-import BullEnemy from "./BullEnemy";
+import BullEnemy, { type BullEnemyHandle } from "./BullEnemy";
 import FractalTree, { type FractalTreeHandle, MIN_SCALE, GROWTH_RATE } from "./FractalTree";
 import type { BullEnemyConfig } from "../../reducers/BullEnemy";
 
@@ -35,21 +35,15 @@ export default function SceneContent() {
   const leftArmRef = useRef<Mesh>(null);
   const rightArmRef = useRef<Mesh>(null);
   const treeRef = useRef<FractalTreeHandle>(null);
+  const bullEnemyRef = useRef<BullEnemyHandle>(null);
 
   const { camera } = useThree();
 
   // Get left controller for thumbstick input
   const leftController = useXRInputSourceState("controller", "left");
 
-  // Target position: tree's XZ but player's head Y
-  const targetPosition = useRef(new Vector3(...treePosition));
-
   useFrame((_, delta) => {
     setDeltaT(delta);
-    // Update target Y to match player's head height
-    targetPosition.current.x = treePosition[0];
-    targetPosition.current.y = camera.position.y;
-    targetPosition.current.z = treePosition[2];
 
     // Handle tree movement via left controller thumbstick
     if (leftController?.inputSource?.gamepad && treeRef.current) {
@@ -94,16 +88,18 @@ export default function SceneContent() {
     }
   });
 
-  const handleBullHitTree = () => {
-    treeRef.current?.onHit();
+  // Create a stable actor reference for the tree
+  const treeActor = {
+    getPosition: () => treeRef.current?.getPosition() ?? new Vector3(...treePosition),
+    onHit: (_attacker: unknown, damage: number) => treeRef.current?.onHit(null, damage),
   };
 
   return (
     <>
       <XROrigin />
 
-      <LeftArm deltaT={deltaT} targetRef={movingBoxRef} collisionMeshRef={leftArmRef} />
-      <RightArm deltaT={deltaT} targetRef={movingBoxRef} collisionMeshRef={rightArmRef} />
+      <LeftArm deltaT={deltaT} targetRef={movingBoxRef} collisionMeshRef={leftArmRef} targets={[bullEnemyRef]} />
+      <RightArm deltaT={deltaT} targetRef={movingBoxRef} collisionMeshRef={rightArmRef} targets={[bullEnemyRef]} />
 
       <ambientLight intensity={0.5} />
       <directionalLight position={[5, 5, 5]} intensity={1} />
@@ -113,11 +109,9 @@ export default function SceneContent() {
       <FractalTree ref={treeRef} position={treePosition} />
 
       <BullEnemy
+        ref={bullEnemyRef}
         config={bullEnemyConfig}
-        targetPosition={targetPosition.current}
-        leftArmRef={leftArmRef}
-        rightArmRef={rightArmRef}
-        onHitTarget={handleBullHitTree}
+        target={treeActor}
       />
 
       <OrbitControls />
