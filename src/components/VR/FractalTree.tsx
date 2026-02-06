@@ -9,8 +9,8 @@ import {
   Float32BufferAttribute,
 } from "three";
 import { useFrame } from "@react-three/fiber";
-import vertexShader from "../../../shaders/fractal-tree/vertex.glsl?raw";
-import fragmentShader from "../../../shaders/fractal-tree/fragment.glsl?raw";
+import vertexShader from "../../../shaders/common/vertex.glsl";
+import fragmentShader from "../../../shaders/fractal-tree/fragment.glsl";
 
 export interface FractalTreeHandle {
   getPosition: () => Vector3;

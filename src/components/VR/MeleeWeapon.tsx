@@ -9,8 +9,8 @@ import {
   Float32BufferAttribute,
 } from "three";
 import { useFrame } from "@react-three/fiber";
-import vertexShader from "../../../shaders/melee-weapon/vertex.glsl?raw";
-import fragmentShader from "../../../shaders/melee-weapon/fragment.glsl?raw";
+import vertexShader from "../../../shaders/common/vertex.glsl";
+import fragmentShader from "../../../shaders/melee-weapon/fragment.glsl";
 
 // Typical human punch/swing speed tops out around 10 m/s
 const MAX_SPEED = 10;
