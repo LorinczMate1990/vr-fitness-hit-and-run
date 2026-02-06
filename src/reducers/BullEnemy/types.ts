@@ -14,7 +14,7 @@ export interface BullEnemyState {
 }
 
 export type BullEnemyAction =
-  | { type: "TICK"; deltaT: number; playerPosition: Vector3 }
+  | { type: "TICK"; deltaT: number; targetPosition: Vector3 }
   | { type: "HIT"; punchSpeed: Vector3 };
 
 export interface BullEnemyConfig {

@@ -45,7 +45,7 @@ export default function BullEnemy({
   // Tick the AI each frame
   useEffect(() => {
     if (deltaT > 0) {
-      dispatch({ type: "TICK", deltaT, playerPosition: targetPosition });
+      dispatch({ type: "TICK", deltaT, targetPosition });
     }
   }, [deltaT, targetPosition]);
 
