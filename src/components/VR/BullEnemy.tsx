@@ -9,9 +9,7 @@ import {
 } from "../../reducers/BullEnemy";
 import type { Actor } from "../../types/Actor";
 
-export interface BullEnemyHandle extends Actor {
-  getMeshRef: () => React.RefObject<Mesh | null>;
-}
+export type BullEnemyHandle = Actor;
 
 interface BullEnemyProps {
   config: BullEnemyConfig;
@@ -40,7 +38,7 @@ const BullEnemy = forwardRef<BullEnemyHandle, BullEnemyProps>(
       () => ({
         getPosition: () => state.position.clone(),
         onHit: (_attacker: Actor | null, _damage: number, impact: Vector3) => dispatch({ type: "HIT", punchSpeed: impact }),
-        getMeshRef: () => meshRef,
+        getCollisionMesh: () => meshRef.current,
       }),
       [state.position]
     );

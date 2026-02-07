@@ -170,6 +170,7 @@ const FractalTree = forwardRef<FractalTreeHandle, FractalTreeProps>(
           const penalty = damage > 0 ? damage : HIT_PENALTY;
           scaleRef.current = Math.max(MIN_SCALE, scaleRef.current - penalty);
         },
+        getCollisionMesh: () => meshRef.current,
         getScale: () => scaleRef.current,
         reduceScale: (amount: number) => {
           scaleRef.current = Math.max(MIN_SCALE, scaleRef.current - amount);

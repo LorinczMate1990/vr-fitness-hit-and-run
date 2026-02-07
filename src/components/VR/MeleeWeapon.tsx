@@ -12,7 +12,7 @@ import {
 import { useFrame } from "@react-three/fiber";
 import vertexShader from "../../../shaders/common/vertex.glsl";
 import fragmentShader from "../../../shaders/melee-weapon/fragment.glsl";
-import type { BullEnemyHandle } from "./BullEnemy";
+import type { Actor } from "../../types/Actor";
 
 // Typical human punch/swing speed tops out around 10 m/s
 const MAX_SPEED = 10;
@@ -107,7 +107,7 @@ function createBladeGeometry(
 }
 
 interface MeleeWeaponProps {
-  targets?: React.RefObject<BullEnemyHandle | null>[];
+  targets?: React.RefObject<Actor | null>[];
 }
 
 export default function MeleeWeapon({ targets = [] }: MeleeWeaponProps) {
@@ -161,10 +161,10 @@ export default function MeleeWeapon({ targets = [] }: MeleeWeaponProps) {
         const target = targetRef.current;
         if (!target) continue;
 
-        const targetMeshRef = target.getMeshRef();
-        if (!targetMeshRef.current) continue;
+        const targetMesh = target.getCollisionMesh();
+        if (!targetMesh) continue;
 
-        targetBox.current.setFromObject(targetMeshRef.current);
+        targetBox.current.setFromObject(targetMesh);
         if (weaponBox.current.intersectsBox(targetBox.current)) {
           // Calculate damage from weapon speed
           const weaponSpeed = currPos.clone().sub(prevPos.current).divideScalar(delta);

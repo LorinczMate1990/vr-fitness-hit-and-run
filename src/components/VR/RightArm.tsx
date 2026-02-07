@@ -2,13 +2,13 @@ import { XRSpace, useXRInputSourceState } from "@react-three/xr";
 import { type Mesh } from "three";
 import { useControllerCollision } from "../../hooks/VR/useControllerCollision";
 import MeleeWeapon from "./MeleeWeapon";
-import type { BullEnemyHandle } from "./BullEnemy";
+import type { Actor } from "../../types/Actor";
 
 interface RightArmProps {
   deltaT: number;
   targetRef: React.RefObject<Mesh | null>;
   collisionMeshRef: React.RefObject<Mesh | null>;
-  targets?: React.RefObject<BullEnemyHandle | null>[];
+  targets?: React.RefObject<Actor | null>[];
 }
 
 export default function RightArm({ deltaT, targetRef, collisionMeshRef, targets = [] }: RightArmProps) {

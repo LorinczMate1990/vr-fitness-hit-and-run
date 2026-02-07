@@ -92,6 +92,7 @@ export default function SceneContent() {
   const treeActor = {
     getPosition: () => treeRef.current?.getPosition() ?? new Vector3(...treePosition),
     onHit: (_attacker: unknown, damage: number, impact: Vector3) => treeRef.current?.onHit(null, damage, impact),
+    getCollisionMesh: () => treeRef.current?.getCollisionMesh() ?? null,
   };
 
   return (
