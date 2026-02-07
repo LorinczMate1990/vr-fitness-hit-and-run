@@ -91,7 +91,7 @@ export default function SceneContent() {
   // Create a stable actor reference for the tree
   const treeActor = {
     getPosition: () => treeRef.current?.getPosition() ?? new Vector3(...treePosition),
-    onHit: (_attacker: unknown, damage: number) => treeRef.current?.onHit(null, damage),
+    onHit: (_attacker: unknown, damage: number, impact: Vector3) => treeRef.current?.onHit(null, damage, impact),
   };
 
   return (

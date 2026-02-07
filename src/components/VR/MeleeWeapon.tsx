@@ -169,7 +169,7 @@ export default function MeleeWeapon({ targets = [] }: MeleeWeaponProps) {
           // Calculate damage from weapon speed
           const weaponSpeed = currPos.clone().sub(prevPos.current).divideScalar(delta);
           const damage = weaponSpeed.length();
-          target.onHit(null, damage);
+          target.onHit(null, damage, weaponSpeed);
           lastHitTime.current = now;
           break; // Only hit one target per frame
         }

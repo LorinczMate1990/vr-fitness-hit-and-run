@@ -166,7 +166,7 @@ const FractalTree = forwardRef<FractalTreeHandle, FractalTreeProps>(
       ref,
       () => ({
         getPosition: () => new Vector3(...position),
-        onHit: (_attacker: Actor | null, damage: number) => {
+        onHit: (_attacker: Actor | null, damage: number, _impact: Vector3) => {
           const penalty = damage > 0 ? damage : HIT_PENALTY;
           scaleRef.current = Math.max(MIN_SCALE, scaleRef.current - penalty);
         },

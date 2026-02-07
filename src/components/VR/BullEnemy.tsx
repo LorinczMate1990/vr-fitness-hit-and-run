@@ -39,18 +39,14 @@ const BullEnemy = forwardRef<BullEnemyHandle, BullEnemyProps>(
       ref,
       () => ({
         getPosition: () => state.position.clone(),
-        onHit: (_attacker: Actor | null, damage: number) => {
-          // Convert damage to a punch speed vector (simplified)
-          const punchSpeed = new Vector3(0, 0, -damage);
-          dispatch({ type: "HIT", punchSpeed });
-        },
+        onHit: (_attacker: Actor | null, _damage: number, impact: Vector3) => dispatch({ type: "HIT", punchSpeed: impact }),
         getMeshRef: () => meshRef,
       }),
       [state.position]
     );
 
     useFrame((_, deltaT) => {
-      // Target position: tree's XZ but player's head Y
+      // Target position: target's XZ but player's head Y
       const targetPosition = target.getPosition();
       targetPosition.y = camera.position.y;
 
@@ -64,7 +60,7 @@ const BullEnemy = forwardRef<BullEnemyHandle, BullEnemyProps>(
           const distanceToTarget = state.position.distanceTo(targetPosition);
           if (distanceToTarget < TARGET_HIT_DISTANCE) {
             lastTargetHitTime.current = now;
-            target.onHit(null, BULL_DAMAGE);
+            target.onHit(null, BULL_DAMAGE, state.speed.clone());
           }
         }
       }
