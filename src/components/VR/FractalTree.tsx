@@ -12,8 +12,7 @@ import { useFrame } from "@react-three/fiber";
 import vertexShader from "../../../shaders/common/vertex.glsl";
 import fragmentShader from "../../../shaders/fractal-tree/fragment.glsl";
 import { useGameStore } from "../../stores/gameStore";
-import { MIN_SCALE, MAX_SCALE } from "../../game/treeLogic";
-import type { TreeActor } from "../../game/TreeActor";
+import { type TreeActor, MIN_SCALE, MAX_SCALE } from "../../game/TreeActor";
 
 // Generate fractal tree geometry
 function createFractalTreeGeometry(

@@ -11,7 +11,7 @@ import FractalTree from "./FractalTree";
 import { useGameStore } from "../../stores/gameStore";
 import { BullEnemyActor } from "../../game/BullEnemyActor";
 import { TreeActor } from "../../game/TreeActor";
-import { GROWTH_RATE, MIN_SCALE } from "../../game/treeLogic";
+import { GROWTH_RATE, MIN_SCALE } from "../../game/TreeActor";
 
 // Movement cost: 1 second of growth per 10cm (0.1 units) moved
 const MOVEMENT_COST_PER_UNIT = GROWTH_RATE * 10;
