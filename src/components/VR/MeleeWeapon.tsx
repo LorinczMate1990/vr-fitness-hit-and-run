@@ -1,8 +1,7 @@
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import * as THREE from "three";
 import {
   Vector3,
-  Box3,
   ShaderMaterial,
   DoubleSide,
   AdditiveBlending,
@@ -13,11 +12,6 @@ import { useFrame } from "@react-three/fiber";
 import vertexShader from "../../../shaders/common/vertex.glsl";
 import fragmentShader from "../../../shaders/melee-weapon/fragment.glsl";
 import { useGameStore } from "../../stores/gameStore";
-
-// Typical human punch/swing speed tops out around 10 m/s
-const MAX_SPEED = 10;
-// Hit cooldown in ms
-const HIT_COOLDOWN = 200;
 
 // Create curved rhombus blade geometry
 function createBladeGeometry(
@@ -31,15 +25,12 @@ function createBladeGeometry(
   const uvs: number[] = [];
   const indices: number[] = [];
 
-  // Generate cross-section points for a curved rhombus
-  // 4 corners with curved edges between them
   function getCrossSection(scale: number, pointsPerSide: number): Vector3[] {
     const points: Vector3[] = [];
     const w = baseWidth * scale * 0.5;
     const d = baseDepth * scale * 0.5;
-    const curve = 0.3; // How much the sides curve inward (0 = straight, 1 = very curved)
+    const curve = 0.3;
 
-    // 4 corners of rhombus: +X, +Z, -X, -Z
     const corners = [
       new Vector3(w, 0, 0),
       new Vector3(0, 0, d),
@@ -53,9 +44,7 @@ function createBladeGeometry(
 
       for (let j = 0; j < pointsPerSide; j++) {
         const t = j / pointsPerSide;
-        // Lerp between corners with inward curve
         const mid = new Vector3().lerpVectors(start, end, t);
-        // Push toward center for curve effect
         const curveAmount = Math.sin(t * Math.PI) * curve * scale;
         mid.multiplyScalar(1 - curveAmount * 0.3);
         points.push(mid);
@@ -68,11 +57,10 @@ function createBladeGeometry(
   const pointsPerSide = curveSegments;
   const totalCrossPoints = pointsPerSide * 4;
 
-  // Generate vertices along blade length
   for (let i = 0; i <= segments; i++) {
     const t = i / segments;
-    const y = -t * length; // Blade extends downward
-    const scale = 1 - t * 0.95; // Taper to 5% at tip
+    const y = -t * length;
+    const scale = 1 - t * 0.95;
 
     const crossSection = getCrossSection(scale, pointsPerSide);
 
@@ -83,7 +71,6 @@ function createBladeGeometry(
     }
   }
 
-  // Generate indices for the faces
   for (let i = 0; i < segments; i++) {
     for (let j = 0; j < totalCrossPoints; j++) {
       const curr = i * totalCrossPoints + j;
@@ -91,7 +78,6 @@ function createBladeGeometry(
       const currBelow = (i + 1) * totalCrossPoints + j;
       const nextBelow = (i + 1) * totalCrossPoints + ((j + 1) % totalCrossPoints);
 
-      // Two triangles per quad
       indices.push(curr, currBelow, next);
       indices.push(next, currBelow, nextBelow);
     }
@@ -106,14 +92,14 @@ function createBladeGeometry(
   return geometry;
 }
 
-export default function MeleeWeapon() {
+interface MeleeWeaponProps {
+  id: string;
+}
+
+export default function MeleeWeapon({ id }: MeleeWeaponProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const prevPos = useRef(new Vector3());
   const matRef = useRef<ShaderMaterial>(null);
   const timeRef = useRef(0);
-  const weaponBox = useRef(new Box3());
-  const targetBox = useRef(new Box3());
-  const lastHitTime = useRef(0);
 
   const uniforms = useMemo(
     () => ({
@@ -123,51 +109,36 @@ export default function MeleeWeapon() {
     []
   );
 
-  // Create curved rhombus blade geometry: 6.25cm x 3.75cm base, 50cm length
   const bladeGeometry = useMemo(
     () => createBladeGeometry(0.0625, 0.0375, 0.5, 24, 5),
     []
   );
 
+  useEffect(() => {
+    const store = useGameStore.getState();
+    store.registerWeapon(id);
+    store.setWeaponMesh(id, meshRef.current);
+    return () => useGameStore.getState().unregisterWeapon(id);
+  }, [id]);
+
   useFrame((_, delta) => {
+    // Shader time
+    timeRef.current += delta;
     if (matRef.current) {
-      timeRef.current += delta;
       matRef.current.uniforms.uTime.value = timeRef.current;
     }
 
-    if (!meshRef.current || delta <= 0) return;
+    // Tick weapon logic (collision detection, speed calc) in store
+    const store = useGameStore.getState();
+    store.tickWeapon(id, delta);
 
-    // Calculate speed from world position change
-    const currPos = new Vector3();
-    meshRef.current.getWorldPosition(currPos);
-
-    const speed = currPos.distanceTo(prevPos.current) / delta;
-    const t = Math.min(speed / MAX_SPEED, 1);
-
-    if (matRef.current) {
-      matRef.current.uniforms.uSpeed.value = t;
+    // Read speed from store for shader
+    const weapon = store.weapons.get(id);
+    if (matRef.current && weapon) {
+      matRef.current.uniforms.uSpeed.value = weapon.speedNormalized;
     }
-
-    // Check collision with hittable entities from store
-    const now = performance.now();
-    if (now - lastHitTime.current >= HIT_COOLDOWN) {
-      weaponBox.current.setFromObject(meshRef.current);
-
-      const { bullEnemy, hitBullEnemy } = useGameStore.getState();
-      if (bullEnemy.mesh) {
-        targetBox.current.setFromObject(bullEnemy.mesh);
-        if (weaponBox.current.intersectsBox(targetBox.current)) {
-          const weaponSpeed = currPos.clone().sub(prevPos.current).divideScalar(delta);
-          hitBullEnemy(weaponSpeed);
-          lastHitTime.current = now;
-        }
-      }
-    }
-
-    prevPos.current.copy(currPos);
   });
 
-  // Blade: 20cm length, curved rhombus base at controller, tip pointing down
   return (
     <mesh ref={meshRef} geometry={bladeGeometry}>
       <shaderMaterial

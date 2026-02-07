@@ -24,7 +24,7 @@ export default function LeftArm({ targetRef, collisionMeshRef }: LeftArmProps) {
       <mesh ref={collisionMeshRef} visible={false}>
         <boxGeometry args={[0.1, 0.1, 0.15]} />
       </mesh>
-      <MeleeWeapon />
+      <MeleeWeapon id="weapon-left" />
     </XRSpace>
   );
 }

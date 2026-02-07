@@ -3,28 +3,34 @@ import { type Mesh, type MeshStandardMaterial } from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGameStore } from "../../stores/gameStore";
 
-export default function BullEnemy() {
+interface BullEnemyProps {
+  id: string;
+}
+
+export default function BullEnemy({ id }: BullEnemyProps) {
   const meshRef = useRef<Mesh>(null);
   const matRef = useRef<MeshStandardMaterial>(null);
   const { camera } = useThree();
 
   useEffect(() => {
-    useGameStore.getState().setBullEnemyMesh(meshRef.current);
-    return () => useGameStore.getState().setBullEnemyMesh(null);
-  }, []);
+    useGameStore.getState().setEnemyMesh(id, meshRef.current);
+    return () => useGameStore.getState().setEnemyMesh(id, null);
+  }, [id]);
 
   useFrame((_, deltaT) => {
     const store = useGameStore.getState();
-    store.tickBullEnemy(deltaT, camera.position.y);
+    store.tickEnemy(id, deltaT, camera.position.y);
+
+    const enemy = store.enemies.get(id);
+    if (!enemy) return;
 
     if (meshRef.current) {
-      meshRef.current.position.copy(store.bullEnemy.position);
+      meshRef.current.position.copy(enemy.position);
     }
 
-    // Color based on state: red when attacking, yellow when fleeing
     if (matRef.current) {
       matRef.current.color.set(
-        store.bullEnemy.mode === "attack" ? "#ff0000" : "#ffcc00"
+        enemy.mode === "attack" ? "#ff0000" : "#ffcc00"
       );
     }
   });

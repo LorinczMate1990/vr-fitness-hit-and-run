@@ -1,8 +1,8 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
+import { Vector3, type Mesh } from "three";
 import { useFrame } from "@react-three/fiber";
 import { XROrigin, useXRInputSourceState } from "@react-three/xr";
 import { OrbitControls } from "@react-three/drei";
-import { type Mesh } from "three";
 import LeftArm from "./LeftArm";
 import RightArm from "./RightArm";
 import MovingBox from "./MovingBox";
@@ -21,6 +21,26 @@ export default function SceneContent() {
   const movingBoxRef = useRef<Mesh>(null);
   const leftArmRef = useRef<Mesh>(null);
   const rightArmRef = useRef<Mesh>(null);
+
+  // Spawn initial enemies
+  useEffect(() => {
+    const { spawnEnemy } = useGameStore.getState();
+    const baseConfig = {
+      type: "bull" as const,
+      health: 100,
+      maxSpeed: 8,
+      acceleration: 4.5,
+      hitSpeedThreshold: 3,
+      stateDurationStartValue: 2,
+    };
+
+    spawnEnemy({ ...baseConfig, position: new Vector3(0, 1.7, -5) }, "tree");
+    spawnEnemy({ ...baseConfig, position: new Vector3(3, 1.7, -4) }, "tree");
+    spawnEnemy({ ...baseConfig, position: new Vector3(-3, 1.7, -6) }, "tree");
+  }, []);
+
+  // Reactively subscribe to enemy IDs for rendering
+  const enemyIds = useGameStore((s) => s.enemyIds);
 
   // Get left controller for thumbstick input
   const leftController = useXRInputSourceState("controller", "left");
@@ -69,7 +89,9 @@ export default function SceneContent() {
 
       <FractalTree />
 
-      <BullEnemy />
+      {enemyIds.map((id) => (
+        <BullEnemy key={id} id={id} />
+      ))}
 
       <OrbitControls />
     </>
