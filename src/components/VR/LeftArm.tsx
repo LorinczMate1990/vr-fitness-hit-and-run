@@ -2,23 +2,19 @@ import { XRSpace, useXRInputSourceState } from "@react-three/xr";
 import { type Mesh } from "three";
 import { useControllerCollision } from "../../hooks/VR/useControllerCollision";
 import MeleeWeapon from "./MeleeWeapon";
-import type { Actor } from "../../types/Actor";
 
 interface LeftArmProps {
-  deltaT: number;
   targetRef: React.RefObject<Mesh | null>;
   collisionMeshRef: React.RefObject<Mesh | null>;
-  targets?: React.RefObject<Actor | null>[];
 }
 
-export default function LeftArm({ deltaT, targetRef, collisionMeshRef, targets = [] }: LeftArmProps) {
+export default function LeftArm({ targetRef, collisionMeshRef }: LeftArmProps) {
   const controller = useXRInputSourceState("controller", "left");
 
   useControllerCollision(
     collisionMeshRef,
     targetRef,
-    controller?.inputSource,
-    deltaT
+    controller?.inputSource
   );
 
   if (!controller) return null;
@@ -28,7 +24,7 @@ export default function LeftArm({ deltaT, targetRef, collisionMeshRef, targets =
       <mesh ref={collisionMeshRef} visible={false}>
         <boxGeometry args={[0.1, 0.1, 0.15]} />
       </mesh>
-      <MeleeWeapon targets={targets} />
+      <MeleeWeapon />
     </XRSpace>
   );
 }

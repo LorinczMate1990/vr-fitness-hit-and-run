@@ -1,4 +1,4 @@
-import { useRef, useMemo, forwardRef, useImperativeHandle } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import * as THREE from "three";
 import {
   Vector3,
@@ -11,26 +11,8 @@ import {
 import { useFrame } from "@react-three/fiber";
 import vertexShader from "../../../shaders/common/vertex.glsl";
 import fragmentShader from "../../../shaders/fractal-tree/fragment.glsl";
-import type { Actor } from "../../types/Actor";
-
-export interface FractalTreeHandle extends Actor {
-  getScale: () => number;
-  reduceScale: (amount: number) => void;
-}
-
-export { MIN_SCALE, GROWTH_RATE };
-
-interface FractalTreeProps {
-  position: [number, number, number];
-}
-
-// Growth rate: scale units per second
-const GROWTH_RATE = 0.02;
-// How much growth is lost on hit (30 seconds worth)
-const HIT_PENALTY = GROWTH_RATE * 30;
-// Min and max scale
-const MIN_SCALE = 0.3;
-const MAX_SCALE = 2.0;
+import { useGameStore } from "../../stores/gameStore";
+import { MIN_SCALE, MAX_SCALE } from "../../game/treeLogic";
 
 // Generate fractal tree geometry
 function createFractalTreeGeometry(
@@ -145,76 +127,60 @@ function createFractalTreeGeometry(
   return geometry;
 }
 
-const FractalTree = forwardRef<FractalTreeHandle, FractalTreeProps>(
-  ({ position }, ref) => {
-    const meshRef = useRef<THREE.Mesh>(null);
-    const matRef = useRef<ShaderMaterial>(null);
-    const timeRef = useRef(0);
-    const scaleRef = useRef(1.0);
+export default function FractalTree() {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const matRef = useRef<ShaderMaterial>(null);
+  const timeRef = useRef(0);
 
-    const uniforms = useMemo(
-      () => ({
-        uTime: { value: 0 },
-        uHealth: { value: 1.0 },
-      }),
-      []
-    );
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uHealth: { value: 1.0 },
+    }),
+    []
+  );
 
-    const treeGeometry = useMemo(() => createFractalTreeGeometry(4, 0.15, 0.02, 0.5, 0.7, 0.65), []);
+  const treeGeometry = useMemo(() => createFractalTreeGeometry(4, 0.15, 0.02, 0.5, 0.7, 0.65), []);
 
-    useImperativeHandle(
-      ref,
-      () => ({
-        getPosition: () => new Vector3(...position),
-        onHit: (_attacker: Actor | null, damage: number, _impact: Vector3) => {
-          const penalty = damage > 0 ? damage : HIT_PENALTY;
-          scaleRef.current = Math.max(MIN_SCALE, scaleRef.current - penalty);
-        },
-        getCollisionMesh: () => meshRef.current,
-        getScale: () => scaleRef.current,
-        reduceScale: (amount: number) => {
-          scaleRef.current = Math.max(MIN_SCALE, scaleRef.current - amount);
-        },
-      }),
-      [position]
-    );
+  useEffect(() => {
+    useGameStore.getState().setTreeMesh(meshRef.current);
+    return () => useGameStore.getState().setTreeMesh(null);
+  }, []);
 
-    useFrame((_, delta) => {
-      if (matRef.current) {
-        timeRef.current += delta;
-        matRef.current.uniforms.uTime.value = timeRef.current;
+  useFrame((_, delta) => {
+    const { tree, tickTree } = useGameStore.getState();
 
-        // Health based on scale (for visual feedback)
-        const healthRatio = (scaleRef.current - MIN_SCALE) / (MAX_SCALE - MIN_SCALE);
-        matRef.current.uniforms.uHealth.value = healthRatio;
-      }
+    // Grow the tree
+    tickTree(delta);
 
-      // Grow over time
-      scaleRef.current = Math.min(MAX_SCALE, scaleRef.current + GROWTH_RATE * delta);
+    // Update shader uniforms
+    if (matRef.current) {
+      timeRef.current += delta;
+      matRef.current.uniforms.uTime.value = timeRef.current;
 
-      // Apply scale to mesh
-      if (meshRef.current) {
-        meshRef.current.scale.setScalar(scaleRef.current);
-      }
-    });
+      const healthRatio = (tree.scale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE);
+      matRef.current.uniforms.uHealth.value = healthRatio;
+    }
 
-    return (
-      <mesh ref={meshRef} position={position} geometry={treeGeometry}>
-        <shaderMaterial
-          ref={matRef}
-          uniforms={uniforms}
-          vertexShader={vertexShader}
-          fragmentShader={fragmentShader}
-          transparent={true}
-          side={DoubleSide}
-          blending={AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-    );
-  }
-);
+    // Sync position and scale from store
+    if (meshRef.current) {
+      meshRef.current.position.set(...tree.position);
+      meshRef.current.scale.setScalar(tree.scale);
+    }
+  });
 
-FractalTree.displayName = "FractalTree";
-
-export default FractalTree;
+  return (
+    <mesh ref={meshRef} geometry={treeGeometry}>
+      <shaderMaterial
+        ref={matRef}
+        uniforms={uniforms}
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
+        transparent={true}
+        side={DoubleSide}
+        blending={AdditiveBlending}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}

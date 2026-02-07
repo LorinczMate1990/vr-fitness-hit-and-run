@@ -12,7 +12,7 @@ import {
 import { useFrame } from "@react-three/fiber";
 import vertexShader from "../../../shaders/common/vertex.glsl";
 import fragmentShader from "../../../shaders/melee-weapon/fragment.glsl";
-import type { Actor } from "../../types/Actor";
+import { useGameStore } from "../../stores/gameStore";
 
 // Typical human punch/swing speed tops out around 10 m/s
 const MAX_SPEED = 10;
@@ -106,11 +106,7 @@ function createBladeGeometry(
   return geometry;
 }
 
-interface MeleeWeaponProps {
-  targets?: React.RefObject<Actor | null>[];
-}
-
-export default function MeleeWeapon({ targets = [] }: MeleeWeaponProps) {
+export default function MeleeWeapon() {
   const meshRef = useRef<THREE.Mesh>(null);
   const prevPos = useRef(new Vector3());
   const matRef = useRef<ShaderMaterial>(null);
@@ -152,26 +148,18 @@ export default function MeleeWeapon({ targets = [] }: MeleeWeaponProps) {
       matRef.current.uniforms.uSpeed.value = t;
     }
 
-    // Check collisions with targets
+    // Check collision with hittable entities from store
     const now = performance.now();
     if (now - lastHitTime.current >= HIT_COOLDOWN) {
       weaponBox.current.setFromObject(meshRef.current);
 
-      for (const targetRef of targets) {
-        const target = targetRef.current;
-        if (!target) continue;
-
-        const targetMesh = target.getCollisionMesh();
-        if (!targetMesh) continue;
-
-        targetBox.current.setFromObject(targetMesh);
+      const { bullEnemy, hitBullEnemy } = useGameStore.getState();
+      if (bullEnemy.mesh) {
+        targetBox.current.setFromObject(bullEnemy.mesh);
         if (weaponBox.current.intersectsBox(targetBox.current)) {
-          // Calculate damage from weapon speed
           const weaponSpeed = currPos.clone().sub(prevPos.current).divideScalar(delta);
-          const damage = weaponSpeed.length();
-          target.onHit(null, damage, weaponSpeed);
+          hitBullEnemy(weaponSpeed);
           lastHitTime.current = now;
-          break; // Only hit one target per frame
         }
       }
     }

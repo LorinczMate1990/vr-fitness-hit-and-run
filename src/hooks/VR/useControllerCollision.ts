@@ -1,17 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Box3, type Mesh } from "three";
+import { useFrame } from "@react-three/fiber";
 
 export function useControllerCollision(
   controllerMeshRef: React.RefObject<Mesh | null>,
   targetRef: React.RefObject<Mesh | null>,
-  inputSource: XRInputSource | undefined,
-  deltaT: number
+  inputSource: XRInputSource | undefined
 ) {
   const lastPulse = useRef(0);
   const boxA = useRef(new Box3());
   const boxB = useRef(new Box3());
 
-  useEffect(() => {
+  useFrame(() => {
     if (!controllerMeshRef.current || !targetRef.current || !inputSource)
       return;
 
@@ -28,5 +28,5 @@ export function useControllerCollision(
         }
       }
     }
-  }, [deltaT, controllerMeshRef, targetRef, inputSource]);
+  });
 }
