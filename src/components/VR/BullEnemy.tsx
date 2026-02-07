@@ -13,7 +13,7 @@ export type BullEnemyHandle = Actor;
 
 interface BullEnemyProps {
   config: BullEnemyConfig;
-  target: Actor;
+  target: React.RefObject<Actor | null>;
 }
 
 // Distance threshold to count as hitting the target
@@ -44,8 +44,11 @@ const BullEnemy = forwardRef<BullEnemyHandle, BullEnemyProps>(
     );
 
     useFrame((_, deltaT) => {
+      const targetActor = target.current;
+      if (!targetActor) return;
+
       // Target position: target's XZ but player's head Y
-      const targetPosition = target.getPosition();
+      const targetPosition = targetActor.getPosition();
       targetPosition.y = camera.position.y;
 
       // Tick the AI
@@ -58,7 +61,7 @@ const BullEnemy = forwardRef<BullEnemyHandle, BullEnemyProps>(
           const distanceToTarget = state.position.distanceTo(targetPosition);
           if (distanceToTarget < TARGET_HIT_DISTANCE) {
             lastTargetHitTime.current = now;
-            target.onHit(null, BULL_DAMAGE, state.speed.clone());
+            targetActor.onHit(null, BULL_DAMAGE, state.speed.clone());
           }
         }
       }

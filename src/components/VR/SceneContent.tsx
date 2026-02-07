@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 import { XROrigin, useXRInputSourceState } from "@react-three/xr";
 import { OrbitControls } from "@react-three/drei";
 import { Vector3, type Mesh } from "three";
@@ -36,8 +36,6 @@ export default function SceneContent() {
   const rightArmRef = useRef<Mesh>(null);
   const treeRef = useRef<FractalTreeHandle>(null);
   const bullEnemyRef = useRef<BullEnemyHandle>(null);
-
-  const { camera } = useThree();
 
   // Get left controller for thumbstick input
   const leftController = useXRInputSourceState("controller", "left");
@@ -88,13 +86,6 @@ export default function SceneContent() {
     }
   });
 
-  // Create a stable actor reference for the tree
-  const treeActor = {
-    getPosition: () => treeRef.current?.getPosition() ?? new Vector3(...treePosition),
-    onHit: (_attacker: unknown, damage: number, impact: Vector3) => treeRef.current?.onHit(null, damage, impact),
-    getCollisionMesh: () => treeRef.current?.getCollisionMesh() ?? null,
-  };
-
   return (
     <>
       <XROrigin />
@@ -112,7 +103,7 @@ export default function SceneContent() {
       <BullEnemy
         ref={bullEnemyRef}
         config={bullEnemyConfig}
-        target={treeActor}
+        target={treeRef}
       />
 
       <OrbitControls />
