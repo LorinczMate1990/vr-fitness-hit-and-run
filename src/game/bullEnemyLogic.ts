@@ -23,20 +23,6 @@ export interface BullEnemyState {
   stateDurationStartValue: number;
 }
 
-export function createBullEnemyState(config: BullEnemyConfig): BullEnemyState {
-  return {
-    health: config.health,
-    mode: "attack",
-    stateDuration: config.stateDurationStartValue,
-    position: config.position.clone(),
-    speed: new Vector3(0, 0, 0),
-    maxSpeed: config.maxSpeed,
-    acceleration: config.acceleration,
-    hitSpeedThreshold: config.hitSpeedThreshold,
-    stateDurationStartValue: config.stateDurationStartValue,
-  };
-}
-
 /** Run one frame of AI logic. Mutates state in place. */
 export function tick(
   state: BullEnemyState,

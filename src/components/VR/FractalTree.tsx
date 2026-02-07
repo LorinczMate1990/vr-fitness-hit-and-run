@@ -13,6 +13,7 @@ import vertexShader from "../../../shaders/common/vertex.glsl";
 import fragmentShader from "../../../shaders/fractal-tree/fragment.glsl";
 import { useGameStore } from "../../stores/gameStore";
 import { MIN_SCALE, MAX_SCALE } from "../../game/treeLogic";
+import type { TreeActor } from "../../game/TreeActor";
 
 // Generate fractal tree geometry
 function createFractalTreeGeometry(
@@ -143,29 +144,31 @@ export default function FractalTree() {
   const treeGeometry = useMemo(() => createFractalTreeGeometry(4, 0.15, 0.02, 0.5, 0.7, 0.65), []);
 
   useEffect(() => {
-    useGameStore.getState().setTreeMesh(meshRef.current);
-    return () => useGameStore.getState().setTreeMesh(null);
+    const actor = useGameStore.getState().actors.get("tree");
+    if (actor) actor.mesh = meshRef.current;
+    return () => {
+      const a = useGameStore.getState().actors.get("tree");
+      if (a) a.mesh = null;
+    };
   }, []);
 
   useFrame((_, delta) => {
-    const { tree, tickTree } = useGameStore.getState();
+    const actor = useGameStore.getState().actors.get("tree") as TreeActor | undefined;
+    if (!actor) return;
 
-    // Grow the tree
-    tickTree(delta);
+    actor.tick(delta);
 
-    // Update shader uniforms
     if (matRef.current) {
       timeRef.current += delta;
       matRef.current.uniforms.uTime.value = timeRef.current;
 
-      const healthRatio = (tree.scale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE);
+      const healthRatio = (actor.scale - MIN_SCALE) / (MAX_SCALE - MIN_SCALE);
       matRef.current.uniforms.uHealth.value = healthRatio;
     }
 
-    // Sync position and scale from store
     if (meshRef.current) {
-      meshRef.current.position.set(...tree.position);
-      meshRef.current.scale.setScalar(tree.scale);
+      meshRef.current.position.copy(actor.position);
+      meshRef.current.scale.setScalar(actor.scale);
     }
   });
 

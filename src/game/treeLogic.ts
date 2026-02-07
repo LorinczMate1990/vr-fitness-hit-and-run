@@ -6,46 +6,13 @@ export const HIT_PENALTY = GROWTH_RATE * 30;
 export const MIN_SCALE = 0.3;
 export const MAX_SCALE = 2.0;
 
-export interface TreeState {
-  position: [number, number, number];
-  scale: number;
+/** Grow the tree each frame. Mutates in place. */
+export function grow(tree: { scale: number }, deltaT: number): void {
+  tree.scale = Math.min(MAX_SCALE, tree.scale + GROWTH_RATE * deltaT);
 }
 
-export function createTreeState(
-  position: [number, number, number]
-): TreeState {
-  return {
-    position: [...position],
-    scale: 1.0,
-  };
-}
-
-/** Grow the tree each frame. Mutates state in place. */
-export function grow(state: TreeState, deltaT: number): void {
-  state.scale = Math.min(MAX_SCALE, state.scale + GROWTH_RATE * deltaT);
-}
-
-/** Apply damage to tree (reduce scale). Mutates state in place. */
-export function hitTree(state: TreeState, damage: number): void {
+/** Apply damage to tree (reduce scale). Mutates in place. */
+export function hitTree(tree: { scale: number }, damage: number): void {
   const penalty = damage > 0 ? damage : HIT_PENALTY;
-  state.scale = Math.max(MIN_SCALE, state.scale - penalty);
-}
-
-/**
- * Move the tree on the XZ plane if it has enough scale to pay the cost.
- * Returns true if the move was applied.
- */
-export function moveTree(
-  state: TreeState,
-  dx: number,
-  dz: number,
-  scaleCost: number
-): boolean {
-  if (state.scale - scaleCost >= MIN_SCALE) {
-    state.position[0] += dx;
-    state.position[2] += dz;
-    state.scale -= scaleCost;
-    return true;
-  }
-  return false;
+  tree.scale = Math.max(MIN_SCALE, tree.scale - penalty);
 }

@@ -1,7 +1,8 @@
 import { useRef, useEffect } from "react";
 import { type Mesh, type MeshStandardMaterial } from "three";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 import { useGameStore } from "../../stores/gameStore";
+import type { BullEnemyActor } from "../../game/BullEnemyActor";
 
 interface BullEnemyProps {
   id: string;
@@ -10,29 +11,28 @@ interface BullEnemyProps {
 export default function BullEnemy({ id }: BullEnemyProps) {
   const meshRef = useRef<Mesh>(null);
   const matRef = useRef<MeshStandardMaterial>(null);
-  const { camera } = useThree();
 
   useEffect(() => {
-    useGameStore.getState().setEnemyMesh(id, meshRef.current);
-    return () => useGameStore.getState().setEnemyMesh(id, null);
+    const actor = useGameStore.getState().actors.get(id);
+    if (actor) actor.mesh = meshRef.current;
+    return () => {
+      const a = useGameStore.getState().actors.get(id);
+      if (a) a.mesh = null;
+    };
   }, [id]);
 
   useFrame((_, deltaT) => {
-    const store = useGameStore.getState();
-    store.tickEnemy(id, deltaT, camera.position.y);
+    const actor = useGameStore.getState().actors.get(id) as
+      | BullEnemyActor
+      | undefined;
+    if (!actor) return;
 
-    const enemy = store.enemies.get(id);
-    if (!enemy) return;
+    actor.tick(deltaT);
 
-    if (meshRef.current) {
-      meshRef.current.position.copy(enemy.position);
-    }
-
-    if (matRef.current) {
-      matRef.current.color.set(
-        enemy.mode === "attack" ? "#ff0000" : "#ffcc00"
-      );
-    }
+    meshRef.current?.position.copy(actor.position);
+    matRef.current?.color.set(
+      actor.mode === "attack" ? "#ff0000" : "#ffcc00"
+    );
   });
 
   return (
